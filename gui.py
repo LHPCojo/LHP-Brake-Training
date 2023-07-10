@@ -82,7 +82,7 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
         self.channels = [1]
         self.interval = 10
 
-        length = 500
+        length = 100
 
         self.plotdata = np.zeros((length, len(self.channels)))
         self.plotdata2 = np.zeros((length, len(self.channels)))
@@ -95,23 +95,24 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
         self.lineEdit_3.textChanged['QString'].connect(self.update_tolerance)
         self.pushButton.clicked.connect(self.start_worker)
         self.reference_df = None
-        self.counter = 0
 
     def start_worker(self):
         worker = Worker(self.start_stream, )
         self.threadpool.start(worker)
 
     def start_stream(self):
-        self.counter = 0
-        selectedTrack = self.tracks_list[self.trackBox.currentIndex()]
-        self.reference_df = pd.read_csv(self.path + self.selectedVehicle + "/" + selectedTrack + ".csv")
-        self.lineEdit_3.setEnabled(False)
-        self.vehicleBox.setEnabled(False)
-        self.trackBox.setEnabled(False)
-        self.pushButton.setEnabled(False)
-        while True:
-            self.q.put(1)
-            self.update_plot()
+        check_iracing()
+
+        if state.ir_connected:
+            selectedTrack = self.tracks_list[self.trackBox.currentIndex()]
+            self.reference_df = pd.read_csv(self.path + self.selectedVehicle + "/" + selectedTrack + ".csv")
+            self.lineEdit_3.setEnabled(False)
+            self.vehicleBox.setEnabled(False)
+            self.trackBox.setEnabled(False)
+            self.pushButton.setEnabled(False)
+            while True:
+                self.q.put(1)
+                self.update_plot()
 
     def update_now(self, value):
         self.vehicle = self.vehicles_list.index(value)
@@ -137,11 +138,9 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
                     data = self.q.get_nowait()
                 except queue.Empty:
                     break
-                self.counter += 1
-                df_closest = self.reference_df.iloc[(self.reference_df['LapDist'] - self.counter).abs().argsort()[:1]]
-                data = [list(df_closest['Brake'])[0] + np.random.randint(0, 10)]
+                df_closest = self.reference_df.iloc[(self.reference_df['LapDist'] - ir['LapDist']).abs().argsort()[:1]]
+                data = [ir['Brake']*100]
                 data2 = [list(df_closest['Brake'])[0]]
-                # print(abs(data[0] - data2[0]) <= self.tolerance)
                 shift = len(data)
                 self.plotdata = np.roll(self.plotdata, -shift, axis=0)
                 self.plotdata[-shift:, :] = data
@@ -153,6 +152,10 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
                 self.plotdata2[-shift2:, :] = data2
                 self.ydata2 = self.plotdata2[:]
                 self.canvas2.axes.set_facecolor((0, 0, 0))
+
+                if abs(data[0] - data2[0]) >= self.tolerance:
+                    self.canvas.axes.set_facecolor((1, 0, 0))
+                    self.canvas2.axes.set_facecolor((1, 0, 0))
 
                 if self.reference_plot is None:
                     plot_refs = self.canvas.axes.plot(self.ydata, color=(0, 1, 0.29))
