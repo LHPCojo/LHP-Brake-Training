@@ -14,6 +14,8 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 from PyQt5 import uic
 from PyQt5.QtCore import pyqtSlot
 import time
+import tkinter as tk
+from tkinter import filedialog
 
 
 class State:
@@ -45,7 +47,7 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
     def __init__(self):
         QtWidgets.QMainWindow.__init__(self)
         self.ui = uic.loadUi('main.ui', self)
-        self.resize(888, 600)
+        self.resize(1000, 800)
         QtWidgets.QMainWindow.setWindowTitle(self, 'LHP Analytics Braking Tester')
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("LHP_Logo.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -59,7 +61,18 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
 
         self.selectedVehicle = self.vehicles_list[self.vehicles_list.index(self.vehicleBox.currentText())]
         self.tracks_list = []
-        self.path = "C:/Users/thefr/OneDrive/Documents/iRacing/telemetry/baseline_laps/"
+        try:
+            with open('lap_path.txt') as f:
+                contents = f.read()
+                print(contents)
+                self.path = contents
+        except:
+            tk.Tk().withdraw()
+            file_path = filedialog.askdirectory(title="File Location of baseline laps")
+            print(file_path)
+            with open('lap_path.txt', 'w') as f:
+                f.write(file_path)
+            self.path = file_path
         raw_tracks = os.listdir(self.path + self.selectedVehicle)
         for track in raw_tracks:
             print(track.replace('.csv', ''))
