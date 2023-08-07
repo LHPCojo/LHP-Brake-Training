@@ -36,7 +36,7 @@ This will open a lap selector which will allow you to see the brake trace on an 
 When you are ready to have a driver run some laps and work on their braking, run the file named gui.py and select the Car and Track Combo you are running. Additionally, select the percentage tolerance that a driver can be off of the reference in order for their braking to be acceptable. Make Sure to bind the number 1 key to the Active Reset Save Start Point and the number 2 key to Active Reset Run.
 
 <a href="https://youtu.be/OqJDVL6UZ-Q" target="_blank">
- <img src="http://img.youtube.com/vi/OqJDVL6UZ-Q/mqdefault.jpg" alt="Watch the video" width="240" height="180" border="10" />
+ <img src="https://img.youtube.com/vi/OqJDVL6UZ-Q/mqdefault.jpg" alt="Watch the video" width="240" height="180" border="10" />
 </a>
 
 <a href="https://youtu.be/50VxC8cGKBk" target="_blank">
