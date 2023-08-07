@@ -3,7 +3,7 @@ import pandas as pd
 import irsdk
 import os
 import matplotlib
-
+import pyautogui
 matplotlib.use('Qt5Agg')
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -29,10 +29,8 @@ def check_iracing():
         state.last_car_setup_tick = -1
         # we are shutting down ir library (clearing all internal variables)
         ir.shutdown()
-        print('irsdk disconnected')
     elif not state.ir_connected and ir.startup() and ir.is_initialized and ir.is_connected:
         state.ir_connected = True
-        print('irsdk connected')
 
 
 class MplCanvas(FigureCanvas):
@@ -64,18 +62,15 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
         try:
             with open('lap_path.txt') as f:
                 contents = f.read()
-                print(contents)
-                self.path = contents
+                self.path = contents + "/"
         except:
             tk.Tk().withdraw()
             file_path = filedialog.askdirectory(title="File Location of baseline laps")
-            print(file_path)
             with open('lap_path.txt', 'w') as f:
                 f.write(file_path)
-            self.path = file_path
+            self.path = file_path + "/"
         raw_tracks = os.listdir(self.path + self.selectedVehicle)
         for track in raw_tracks:
-            print(track.replace('.csv', ''))
             self.tracks_list.append(track.replace('.csv', ''))
 
         self.trackBox.addItems(self.tracks_list)
@@ -94,6 +89,8 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
         self.tolerance = 10
         self.channels = [1]
         self.interval = 10
+
+        self.braking_zone_success = True
 
         length = 100
 
@@ -117,22 +114,72 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
         check_iracing()
 
         if state.ir_connected:
+            has_braked = False
+            braking_zone_saved = False
             selectedTrack = self.tracks_list[self.trackBox.currentIndex()]
             self.reference_df = pd.read_csv(self.path + self.selectedVehicle + "/" + selectedTrack + ".csv")
             self.lineEdit_3.setEnabled(False)
             self.vehicleBox.setEnabled(False)
             self.trackBox.setEnabled(False)
             self.pushButton.setEnabled(False)
+            braking_zone_dist = 0
             while True:
                 self.q.put(1)
+                if not braking_zone_saved:
+                    df_upcoming = self.reference_df.iloc[(self.reference_df['LapDist'] - (ir['LapDist'] + 200)).abs().argsort()[:1]]
+                    if list(df_upcoming['Brake'])[0] > 1 and ir['Lap'] > 0:
+                        has_braked = False
+                        braking_zone_saved = True
+                        braking_zone_dist = ir['LapDist']
+                        pyautogui.typewrite('1')
+                        pyautogui.typewrite('1')
+                        pyautogui.typewrite('1')
+                        pyautogui.typewrite('1')
+                        self.braking_zone_success = True
+                elif not has_braked:
+                    has_braked = ir['Brake']*100 > 5
+                elif has_braked and braking_zone_saved and ir['LapDist'] - braking_zone_dist > 150 and not self.braking_zone_success\
+                        and not ir['LapDist'] - braking_zone_dist > 1000 and not ir['LapDist'] < braking_zone_dist:
+                    df = self.reference_df[(self.reference_df['LapDist'] >= ir['LapDist'] - 150) &
+                                           (self.reference_df['LapDist'] <= ir['LapDist'] + 150)]
+                    A = list(df['Lat'])[0]
+                    B = list(df['Lon'])[0]
+                    C = list(df['Lat'])[::-1][0]
+                    D = list(df['Lon'])[::-1][0]
+
+                    index = list(df['Lat']).index(min(df['Lat']))
+                    E = list(df['Lat'])[index]
+                    F = list(df['Lon'])[index]
+                    if ((B - D) / (A - C)) * (E - A) + B + 0.0002 > F > ((B - D) / (A - C)) * (E - A) + B - 0.0002:
+                        index = list(df['Lat']).index(max(df['Lat']))
+                        E = list(df['Lat'])[index]
+                        F = list(df['Lon'])[index]
+                        if ((B - D) / (A - C)) * (E - A) + B + 0.0002 > F > ((B - D) / (A - C)) * (E - A) + B - 0.0002:
+                            index = list(df['Lon']).index(min(df['Lon']))
+                            E = list(df['Lat'])[index]
+                            F = list(df['Lon'])[index]
+                            if ((B - D) / (A - C)) * (E - A) + B + 0.0002 > F > ((B - D) / (A - C)) * (
+                                    E - A) + B - 0.0002:
+                                index = list(df['Lon']).index(max(df['Lon']))
+                                E = list(df['Lat'])[index]
+                                F = list(df['Lon'])[index]
+                                if ((B - D) / (A - C)) * (E - A) + B + 0.0002 > F > ((B - D) / (A - C)) * (
+                                        E - A) + B - 0.0002:
+                                    if ir['Brake'] * 100 < 1:
+                                        pyautogui.typewrite('2')
+                                        pyautogui.typewrite('2')
+                                        pyautogui.typewrite('2')
+                                        pyautogui.typewrite('2')
+                                        has_braked = False
+                elif ir['LapDist'] - braking_zone_dist > 1000 or ir['LapDist'] < braking_zone_dist:
+                    braking_zone_saved = False
                 self.update_plot()
 
     def update_now(self, value):
         self.vehicle = self.vehicles_list.index(value)
         self.selectedVehicle = value
         self.tracks_list = []
-        raw_tracks = os.listdir(
-            "C:/Users/thefr/OneDrive/Documents/iRacing/telemetry/baseline_laps/" + self.selectedVehicle)
+        raw_tracks = os.listdir(self.path + self.selectedVehicle)
         for track in raw_tracks:
             self.tracks_list.append(track.replace('.csv', ''))
         self.trackBox.clear()
@@ -166,7 +213,8 @@ class LHP_LIVE_BRAKE_APP(QtWidgets.QMainWindow):
                 self.ydata2 = self.plotdata2[:]
                 self.canvas2.axes.set_facecolor((0, 0, 0))
 
-                if abs(data[0] - data2[0]) >= self.tolerance:
+                if abs(data[0] - data2[0]) >= self.tolerance and ir['Lap'] > 0:
+                    self.braking_zone_success = False
                     self.canvas.axes.set_facecolor((1, 0, 0))
                     self.canvas2.axes.set_facecolor((1, 0, 0))
 
