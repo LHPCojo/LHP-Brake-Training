@@ -37,3 +37,8 @@ When you are ready to have a driver run some laps and work on their braking, run
 
 ## Preferred File Configuration
 
+The easiest way to organize all of the files is to keep them all in the telemetry folder of iRacing. I prefer keeping the raw telemetry and Mu CSVs in the main folder and then making individual folders for each of the series being used in a folder named baseline_laps. The gui takes the series and laps from this folder so it is necessary to organize it this way.
+
+<img src="Images/Screenshot (39).png">
+
+<img src="Images/Screenshot (40).png">
