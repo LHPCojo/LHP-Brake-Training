@@ -7,6 +7,20 @@ Mu - https://github.com/patrickmoore/Mu/releases/tag/1.9.5.0
 
 ## How To Use
 
+### Setup application
+
+WARNING: The following instructions require the use of command line (either Windows Terminal, Git Bash, )
+1. Install Python (https://www.python.org/downloads/)
+2. Install pip (https://pip.pypa.io/en/stable/installation/)
+3. Install venv
+        > py -m pip install virtualenv
+4. Create virtual environment
+    > py -m venv lbenv
+5. Activate virtual environment
+    > source lbenv/Scripts/activate
+6. Install required libraries
+    > py -m pip install -r requirements.txt
+
 ### Drive A Reference Lap
 
 Turn on Telemetry Logging in iRacing and set a lap that you would like to save as the reference lap for all drivers to aim for concerning their braking traces.
